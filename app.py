@@ -10,7 +10,7 @@ if sys.platform == 'win32':
     import asyncio
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_file, render_template
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
@@ -22,7 +22,7 @@ from main_rag import RAGPipeline
 from gemini_generator import generate_study_content_with_gemini
 from pdf_converter import convert_markdown_to_pdf
 
-app = Flask(__name__, static_folder='.')
+app = Flask(__name__)
 CORS(app)
 
 # Configuration
@@ -104,11 +104,9 @@ def create_study_guide_markdown_with_gemini(gemini_content, metadata, output_pat
     print(f"[Flask] Study guide created: {output_path}")
 
 
-@app.route('/')
+@app.route("/")
 def serve_frontend():
-    """Serve the HTML frontend"""
-    return send_from_directory('.', 'index.html')
-
+    return render_template("index.html")
 
 @app.route('/api/generate', methods=['POST'])
 def generate_study_guide():
@@ -162,6 +160,10 @@ def generate_study_guide():
         )
         
         # Process document with RAG pipeline
+        # Only keep document text that is at least 50% relevant to the topics.
+        # Higher value = stricter matching
+        # Lower value = more results
+
         print("[Flask] Processing document with RAG pipeline...")
         result = pipeline.process_document(
             file_path=file_path,

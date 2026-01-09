@@ -154,15 +154,28 @@ def convert_markdown_to_pdf(markdown_file: str, output_pdf: str, metadata: dict 
     print("[PDF Converter] Using fast conversion method (no LaTeX)...")
     
     # Build simpler Pandoc command without pdflatex
+    # pandoc_command = [
+    #     pandoc_path,
+    #     markdown_file,
+    #     '-o', output_pdf,
+    #     '-V', 'margin-top=1in',
+    #     '-V', 'margin-bottom=1in',
+    #     '-V', 'margin-left=1in',
+    #     '-V', 'margin-right=1in',
+    #     '--toc',  # Table of contents
+    # ]
+
+    # Build Pandoc command using wkhtmltopdf engine
     pandoc_command = [
         pandoc_path,
         markdown_file,
         '-o', output_pdf,
+        '--pdf-engine=wkhtmltopdf',  # USE WKHTMLTOPDF INSTEAD
         '-V', 'margin-top=1in',
         '-V', 'margin-bottom=1in',
         '-V', 'margin-left=1in',
         '-V', 'margin-right=1in',
-        '--toc',  # Table of contents
+        '--toc',
     ]
     
     # Add metadata if provided

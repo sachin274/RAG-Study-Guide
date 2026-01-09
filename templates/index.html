@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Study Guide Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- PAGE 1: INPUT FORM -->
+        <div id="inputPage" class="page active">
+            <h1 class="main-header">🧠 AI STUDY PLANNER</h1>
+            <p class="subheader">POWERED BY GEMINI PRO & RAG TECHNOLOGY</p>
+
+            <h3>1. UPLOAD YOUR STUDY MATERIAL</h3>
+            <div class="file-upload-container" id="fileUploadContainer">
+                <input type="file" id="fileInput" accept=".pdf">
+                <div class="file-upload-label">
+                    UPLOAD YOUR DOCUMENT (PDF)
+                </div>
+                <div class="file-name" id="fileName"></div>
+            </div>
+
+            <h3>2. DEFINE STUDY TOPICS</h3>
+            <label class="field-label">ENTER THE TOPIC(S) YOU WANT TO STUDY:</label>
+            <textarea 
+                id="topicInput" 
+                placeholder="E.G., PHOTOSYNTHESIS AND CELLULAR RESPIRATION, LINEAR ALGEBRA CONCEPTS, WORLD WAR II EVENTS"
+            ></textarea>
+
+            <button class="generate-button" id="generateButton">
+                🚀 GENERATE AI STUDY GUIDE
+            </button>
+
+            <div class="alert error" id="errorAlert" style="display: none;"></div>
+        </div>
+
+        <!-- PAGE 2: LOADING -->
+        <div id="loadingPage" class="page">
+            <div class="loading-content">
+                <h1 class="main-header">⚡ PROCESSING</h1>
+                <div class="spinner"></div>
+                <div class="loading-text" id="loadingText">AI AGENT ANALYZING YOUR CONTENT...</div>
+                <div class="loading-details" id="loadingDetails"></div>
+                <div class="progress-dots" id="progressDots">...</div>
+            </div>
+        </div>
+
+        <!-- PAGE 3: DOWNLOAD -->
+        <div id="downloadPage" class="page">
+            <div class="download-content">
+                <h1 class="main-header">🧠 AI STUDY PLANNER</h1>
+                <div class="success-icon">✅</div>
+                <div class="success-message">AI GENERATION COMPLETE!</div>
+                <div class="guide-info" id="guideInfo">
+                    Your personalized study guide is ready
+                </div>
+                <a href="#" class="download-button" id="downloadButton">
+                    ⬇️ DOWNLOAD STUDY GUIDE
+                </a>
+                <br>
+                <button class="start-over-button" id="startOverButton">
+                    🔄 CREATE ANOTHER GUIDE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFile = null;
+
+        // Page navigation
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        // File upload handling
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+
+        fileInput.addEventListener('change', (e) => {
+            uploadedFile = e.target.files[0];
+            if (uploadedFile) {
+                fileName.textContent = `Selected: ${uploadedFile.name}`;
+            }
+        });
+
+        // Generate button handling
+        const generateButton = document.getElementById('generateButton');
+        const topicInput = document.getElementById('topicInput');
+        const errorAlert = document.getElementById('errorAlert');
+
+        function showError(message) {
+            errorAlert.textContent = message;
+            errorAlert.style.display = 'block';
+        }
+
+        function hideError() {
+            errorAlert.style.display = 'none';
+        }
+
+        function animateLoadingDots() {
+            const dotsElement = document.getElementById('progressDots');
+            let dots = 0;
+            return setInterval(() => {
+                dots = (dots + 1) % 4;
+                dotsElement.textContent = '.'.repeat(dots || 1);
+            }, 500);
+        }
+
+        async function generateStudyGuide() {
+            const topics = topicInput.value.trim();
+
+            // Validation
+            if (!uploadedFile) {
+                showError('🚨 SYSTEM ALERT: PLEASE UPLOAD A DOCUMENT');
+                return;
+            }
+
+            if (!topics) {
+                showError('🚨 SYSTEM ALERT: PLEASE SPECIFY THE TOPICS YOU WANT TO STUDY');
+                return;
+            }
+
+            hideError();
+
+            // Switch to loading page
+            showPage('loadingPage');
+            
+            // Update loading details
+            let detailsText = `Processing: ${uploadedFile.name} | Topics: ${topics}`;
+            document.getElementById('loadingDetails').textContent = detailsText;
+            document.getElementById('loadingText').textContent = 'EXTRACTING TEXT & CREATING EMBEDDINGS...';
+            
+            const dotsInterval = animateLoadingDots();
+
+            try {
+                const formData = new FormData();
+                formData.append('file', uploadedFile);
+                formData.append('topics', topics);
+
+                const response = await fetch('http://localhost:5000/api/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to generate study guide');
+                }
+
+                // Update loading text for Gemini phase
+                document.getElementById('loadingText').textContent = 'GEMINI AI GENERATING STUDY CONTENT...';
+
+                const result = await response.json();
+
+                clearInterval(dotsInterval);
+
+                const downloadUrl = `http://localhost:5000${result.download_url}`;
+                
+                document.getElementById('downloadButton').href = downloadUrl;
+                document.getElementById('downloadButton').download = result.filename;
+                
+                let infoHtml = `<strong>✨ AI-Generated Study Guide</strong><br><br>`;
+                infoHtml += `<strong>File:</strong> ${result.filename}<br>`;
+                infoHtml += `<strong>Source:</strong> ${uploadedFile.name}<br>`;
+                infoHtml += `<strong>Topics:</strong> ${topics}<br>`;
+                infoHtml += `<strong>Chunks Analyzed:</strong> ${result.chunks_processed || 'N/A'}<br>`;
+                infoHtml += `<strong>Generated with:</strong> Google Gemini Pro`;
+                
+                document.getElementById('guideInfo').innerHTML = infoHtml;
+
+                showPage('downloadPage');
+
+            } catch (error) {
+                clearInterval(dotsInterval);
+                console.error('Error generating study guide:', error);
+                showPage('inputPage');
+                showError(`🚨 ERROR: ${error.message}`);
+            }
+        }
+
+        generateButton.addEventListener('click', generateStudyGuide);
+
+        document.getElementById('startOverButton').addEventListener('click', () => {
+            uploadedFile = null;
+            fileInput.value = '';
+            fileName.textContent = '';
+            topicInput.value = '';
+            hideError();
+            showPage('inputPage');
+        });
+
+        topicInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                generateStudyGuide();
+            }
+        });
+    </script>
+</body>
+</html>

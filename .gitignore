@@ -1,0 +1,39 @@
+# =========================
+# Environment variables
+# =========================
+.env
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# =========================
+# Virtual Environment
+# =========================
+venv/
+.venv/
+
+# =========================
+# Generated / Runtime Data
+# =========================
+uploads/
+outputs/
+extracted_text/
+faiss_stores/
+
+# =========================
+# OS / Editor junk
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# =========================
+# Logs
+# =========================
+*.log

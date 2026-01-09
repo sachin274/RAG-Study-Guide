@@ -27,7 +27,8 @@ class RAGPipeline:
         self.vector_store = None
         self.chunks = []
         self.raw_text = ""
-        
+    
+    # Function 1
     def process_document(
         self, 
         file_path: str,
@@ -55,6 +56,7 @@ class RAGPipeline:
             
             print(f"[RAG] Processing study material: {file_path}")
             
+
             # Step 1: Extract text from PDF and save to file
             print("[RAG] Step 1: Extracting text from PDF...")
             extraction_result = extract_pdf_to_text_file(file_path, extracted_text_folder)
@@ -65,6 +67,7 @@ class RAGPipeline:
             self.raw_text = extraction_result['text']
             print(f"[RAG] Extracted {len(self.raw_text)} characters")
             
+
             # Step 2: Chunk the text
             print("[RAG] Step 2: Creating text chunks...")
             self.chunks = get_text_chunks(self.raw_text)
@@ -73,6 +76,7 @@ class RAGPipeline:
             if not self.chunks:
                 raise ValueError("No text chunks created")
             
+
             # Step 3: Create vector store with embeddings
             print("[RAG] Step 3: Creating vector store with embeddings...")
             self.vector_store = create_vector_store(
@@ -81,6 +85,7 @@ class RAGPipeline:
             )
             print("[RAG] Vector store created successfully")
             
+
             # Step 4: Query for ALL relevant content
             print(f"[RAG] Step 4: Finding ALL relevant chunks for topics: {topics}")
             relevant_chunks = self._get_all_relevant_content(
@@ -107,6 +112,8 @@ class RAGPipeline:
             traceback.print_exc()
             raise Exception(f"RAG Pipeline failed: {str(e)}")
     
+
+    # Function 2
     def _setup_event_loop(self):
         """Ensure an event loop exists for the current thread"""
         try:
@@ -119,6 +126,8 @@ class RAGPipeline:
             asyncio.set_event_loop(loop)
             print("[RAG] Created new event loop for thread")
     
+
+    # Function 3
     def _get_all_relevant_content(
         self, 
         query: str, 
@@ -144,6 +153,7 @@ class RAGPipeline:
             
             # First, get a large number of results with scores
             # We'll get all chunks, then filter by score
+            
             k = min(len(self.chunks), 100)  # Start with top 100 or all chunks
             
             print(f"[RAG] Performing similarity search (k={k})...")
@@ -202,6 +212,8 @@ class RAGPipeline:
                 print("[RAG] Fallback also failed, returning empty list")
                 return []
     
+
+    # Function 4
     def query_vector_store(self, query: str, threshold: float = 0.5) -> List[str]:
         """
         Query the vector store for additional questions
