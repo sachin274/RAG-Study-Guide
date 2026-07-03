@@ -103,6 +103,41 @@ faiss_stores/             Per-upload FAISS vector stores (gitignored)
 outputs/                  Generated study guide PDFs (gitignored)
 ```
 
+## Deployment (Render)
+
+The app ships with a `Dockerfile` (installs Pandoc + the patched-Qt wkhtmltopdf
+build, pre-downloads the embedding model, and serves via Gunicorn) and a
+`render.yaml` Blueprint.
+
+1. Push this repo to GitHub.
+2. In the Render dashboard: **New > Blueprint**, connect the repo. Render will read
+   `render.yaml` and create the web service automatically (Docker runtime, free plan,
+   health check on `/api/health`).
+   - Alternatively: **New > Web Service**, connect the repo, and choose **Docker** as
+     the runtime manually.
+3. Set the `GOOGLE_API_KEY` environment variable in the service's **Environment** tab
+   (the Blueprint will prompt for it since it's marked as a secret, not committed).
+4. Deploy. The first build takes a while (installing wkhtmltopdf + torch +
+   sentence-transformers and pre-baking the embedding model into the image).
+5. Once live, Render gives you a URL like `https://rag-study-guide.onrender.com` —
+   the frontend now uses relative API paths, so it works there without any code changes.
+
+**Caveats to know about before relying on this in production:**
+
+- **Ephemeral, single-instance storage.** `uploads/`, `extracted_text/`,
+  `faiss_stores/`, and `outputs/` are written to local disk. Render's default web
+  service disk is ephemeral (wiped on redeploy/restart) and not shared across
+  instances. This is fine as long as you run exactly **one** instance (no
+  autoscaling) — each request's upload → generate → download happens within that
+  same instance — but don't scale this service horizontally without adding real
+  object storage (e.g. S3) and a shared vector DB.
+- **Memory.** Render's free tier (512MB RAM) can be tight with `torch` +
+  `sentence-transformers` loaded alongside Flask/Gunicorn. If you see the service
+  crash or 502 under load, upgrade to a paid instance type with more RAM.
+- **Request timeout.** Generation can take 30-90+ seconds for larger documents.
+  Gunicorn is configured with a 180s timeout; if you switch to a different platform,
+  make sure its own request/proxy timeout is at least that long too.
+
 ## Notes
 
 - `uploads/`, `extracted_text/`, `faiss_stores/`, and `outputs/` are runtime data and are

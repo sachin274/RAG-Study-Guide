@@ -1,0 +1,14 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.claude/
+.env
+uploads/
+outputs/
+extracted_text/
+faiss_stores/
+*.log

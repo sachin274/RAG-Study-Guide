@@ -177,7 +177,7 @@
                 formData.append('file', uploadedFile);
                 formData.append('topics', topics);
 
-                const response = await fetch('http://localhost:5000/api/generate', {
+                const response = await fetch('/api/generate', {
                     method: 'POST',
                     body: formData
                 });
@@ -192,7 +192,7 @@
                 clearInterval(dotsInterval);
                 clearInterval(progressInterval);
 
-                const downloadUrl = `http://localhost:5000${result.download_url}`;
+                const downloadUrl = result.download_url;
                 
                 document.getElementById('downloadButton').href = downloadUrl;
                 document.getElementById('downloadButton').download = result.filename;
