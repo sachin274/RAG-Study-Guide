@@ -9,6 +9,122 @@ import shutil
 import sys
 
 
+# Styling injected into the HTML pandoc generates before wkhtmltopdf renders it to PDF.
+# Passed via --include-in-header so it's self-contained (no relative CSS file to resolve).
+PDF_STYLE = """
+<style>
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #232734;
+    line-height: 1.65;
+    font-size: 12pt;
+  }
+
+  #title-block-header {
+    text-align: center;
+    border-bottom: 3px solid #43B0AF;
+    padding-bottom: 18px;
+    margin-bottom: 30px;
+  }
+  #title-block-header .title {
+    color: #2A3056;
+    font-size: 2.1em;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  #title-block-header .author,
+  #title-block-header .date {
+    color: #43B0AF;
+    font-size: 1.05em;
+    font-style: normal;
+  }
+
+  h1, h2, h3, h4, h5 {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: #1B4F4E;
+    font-weight: 700;
+    page-break-after: avoid;
+  }
+  h1 { font-size: 1.9em; border-bottom: 2px solid #43B0AF; padding-bottom: 8px; margin-top: 0.6em; }
+  h2 { font-size: 1.5em; border-bottom: 1px solid #B7E4E3; padding-bottom: 5px; margin-top: 1.3em; color: #16716f; }
+  h3 { font-size: 1.22em; margin-top: 1.1em; color: #1e8b88; }
+  h4 { font-size: 1.05em; margin-top: 1em; color: #2A3056; }
+
+  p { margin: 0.6em 0; text-align: justify; }
+
+  strong { color: #145957; }
+
+  ul, ol { margin: 0.5em 0 0.9em 0; padding-left: 1.6em; }
+  li { margin-bottom: 0.35em; }
+
+  blockquote {
+    margin: 1em 0;
+    padding: 0.6em 1em;
+    border-left: 4px solid #43B0AF;
+    background-color: #F0FAF9;
+    color: #2A3056;
+    font-style: italic;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0 1.4em 0;
+    font-size: 0.95em;
+  }
+  th, td {
+    border: 1px solid #CFE3E2;
+    padding: 8px 10px;
+    text-align: left;
+  }
+  th { background-color: #E4F5F4; color: #145957; }
+  tr:nth-child(even) td { background-color: #FAFDFD; }
+
+  code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    background-color: #F1F1F5;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  pre {
+    background-color: #F1F1F5;
+    border: 1px solid #DADCE5;
+    border-radius: 6px;
+    padding: 10px 12px;
+    overflow-x: auto;
+  }
+  pre code { background: none; padding: 0; }
+
+  hr {
+    border: none;
+    border-top: 1px solid #D8E8E7;
+    margin: 1.6em 0;
+  }
+
+  #TOC {
+    background-color: #F5FAFA;
+    border: 1px solid #DDEFEE;
+    border-radius: 6px;
+    padding: 18px 24px;
+    margin-bottom: 2em;
+  }
+  #TOC ul { list-style-type: none; padding-left: 1em; }
+  #TOC > ul { padding-left: 0; }
+  #TOC a { color: #16716f; text-decoration: none; }
+  #TOC::before {
+    content: "Contents";
+    display: block;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 1.2em;
+    color: #1B4F4E;
+    margin-bottom: 10px;
+  }
+</style>
+"""
+
+
 def find_pandoc_path():
     """
     Try to find Pandoc executable in common locations
@@ -149,21 +265,15 @@ def convert_markdown_to_pdf(markdown_file: str, output_pdf: str, metadata: dict 
     print(f"[PDF Converter] Input file: {markdown_file}")
     print(f"[PDF Converter] Output file: {output_pdf}")
     print(f"[PDF Converter] Using Pandoc: {pandoc_path}")
-    
+
     # Try simpler conversion first (no pdflatex - much faster!)
     print("[PDF Converter] Using fast conversion method (no LaTeX)...")
-    
-    # Build simpler Pandoc command without pdflatex
-    # pandoc_command = [
-    #     pandoc_path,
-    #     markdown_file,
-    #     '-o', output_pdf,
-    #     '-V', 'margin-top=1in',
-    #     '-V', 'margin-bottom=1in',
-    #     '-V', 'margin-left=1in',
-    #     '-V', 'margin-right=1in',
-    #     '--toc',  # Table of contents
-    # ]
+
+    # Write the CSS header include next to the output PDF so wkhtmltopdf
+    # (which renders from a temp working dir) always gets an absolute path
+    style_header_path = os.path.join(os.path.dirname(os.path.abspath(output_pdf)) or '.', '.pdf_style_header.html')
+    with open(style_header_path, 'w', encoding='utf-8') as f:
+        f.write(PDF_STYLE)
 
     # Build Pandoc command using wkhtmltopdf engine
     pandoc_command = [
@@ -175,7 +285,9 @@ def convert_markdown_to_pdf(markdown_file: str, output_pdf: str, metadata: dict 
         '-V', 'margin-bottom=1in',
         '-V', 'margin-left=1in',
         '-V', 'margin-right=1in',
+        '--include-in-header', style_header_path,
         '--toc',
+        '--toc-depth=3',
     ]
     
     # Add metadata if provided
@@ -190,17 +302,17 @@ def convert_markdown_to_pdf(markdown_file: str, output_pdf: str, metadata: dict 
     try:
         print("[PDF Converter] 🚀 Running Pandoc conversion...")
         print(f"[PDF Converter] Command: {' '.join(pandoc_command)}")
-        
-        # Run Pandoc with shorter timeout
+
+        # Run Pandoc (longer timeout since guides are now much more detailed)
         result = subprocess.run(
             pandoc_command,
             capture_output=True,
             text=True,
-            timeout=30,  # 30 second timeout (much shorter)
+            timeout=60,
             shell=(sys.platform == 'win32'),  # Use shell on Windows
             stdin=subprocess.DEVNULL  # Prevent any interactive prompts
         )
-        
+
         if result.returncode == 0:
             if os.path.exists(output_pdf):
                 print("[PDF Converter] ✅ PDF conversion successful!")
@@ -235,7 +347,7 @@ def convert_markdown_to_pdf(markdown_file: str, output_pdf: str, metadata: dict 
             }
             
     except subprocess.TimeoutExpired:
-        error_msg = "PDF conversion timed out (exceeded 30 seconds)"
+        error_msg = "PDF conversion timed out (exceeded 60 seconds)"
         print(f"[PDF Converter] ❌ {error_msg}")
         print(f"[PDF Converter] This usually means pdflatex is stuck or asking for input")
         return {
@@ -253,6 +365,12 @@ def convert_markdown_to_pdf(markdown_file: str, output_pdf: str, metadata: dict 
             'error': error_msg,
             'output_file': None
         }
+    finally:
+        try:
+            if os.path.exists(style_header_path):
+                os.remove(style_header_path)
+        except OSError:
+            pass
 
 
 def convert_markdown_to_pdf_fallback(markdown_file: str, output_pdf: str, metadata: dict = None, pandoc_path: str = 'pandoc') -> dict:

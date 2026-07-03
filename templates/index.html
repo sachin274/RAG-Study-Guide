@@ -45,6 +45,7 @@
                 <div class="loading-text" id="loadingText">AI AGENT ANALYZING YOUR CONTENT...</div>
                 <div class="loading-details" id="loadingDetails"></div>
                 <div class="progress-dots" id="progressDots">...</div>
+                <div class="loading-details" id="elapsedTimer">Elapsed: 0s</div>
             </div>
         </div>
 
@@ -113,6 +114,38 @@
             }, 500);
         }
 
+        // There's no real-time progress from the server (it's a single
+        // blocking request), so we simulate realistic stage messages over
+        // time and show elapsed seconds, instead of freezing on one message.
+        const LOADING_STAGES = [
+            { atSecond: 0, text: 'EXTRACTING TEXT & CREATING EMBEDDINGS...' },
+            { atSecond: 6, text: 'SEARCHING DOCUMENT FOR RELEVANT SECTIONS...' },
+            { atSecond: 12, text: 'GEMINI AI GENERATING STUDY CONTENT...' },
+            { atSecond: 35, text: 'FORMATTING YOUR STUDY GUIDE PDF...' },
+            { atSecond: 50, text: 'STILL WORKING — LARGER DOCUMENTS TAKE LONGER...' },
+        ];
+
+        function startProgressSimulation() {
+            const loadingTextEl = document.getElementById('loadingText');
+            const timerEl = document.getElementById('elapsedTimer');
+            let elapsedSeconds = 0;
+            let stageIndex = 0;
+
+            loadingTextEl.textContent = LOADING_STAGES[0].text;
+            timerEl.textContent = 'Elapsed: 0s';
+
+            return setInterval(() => {
+                elapsedSeconds += 1;
+                timerEl.textContent = `Elapsed: ${elapsedSeconds}s`;
+
+                const nextStage = LOADING_STAGES[stageIndex + 1];
+                if (nextStage && elapsedSeconds >= nextStage.atSecond) {
+                    stageIndex += 1;
+                    loadingTextEl.textContent = nextStage.text;
+                }
+            }, 1000);
+        }
+
         async function generateStudyGuide() {
             const topics = topicInput.value.trim();
 
@@ -131,13 +164,13 @@
 
             // Switch to loading page
             showPage('loadingPage');
-            
+
             // Update loading details
             let detailsText = `Processing: ${uploadedFile.name} | Topics: ${topics}`;
             document.getElementById('loadingDetails').textContent = detailsText;
-            document.getElementById('loadingText').textContent = 'EXTRACTING TEXT & CREATING EMBEDDINGS...';
-            
+
             const dotsInterval = animateLoadingDots();
+            const progressInterval = startProgressSimulation();
 
             try {
                 const formData = new FormData();
@@ -154,12 +187,10 @@
                     throw new Error(errorData.error || 'Failed to generate study guide');
                 }
 
-                // Update loading text for Gemini phase
-                document.getElementById('loadingText').textContent = 'GEMINI AI GENERATING STUDY CONTENT...';
-
                 const result = await response.json();
 
                 clearInterval(dotsInterval);
+                clearInterval(progressInterval);
 
                 const downloadUrl = `http://localhost:5000${result.download_url}`;
                 
@@ -179,6 +210,7 @@
 
             } catch (error) {
                 clearInterval(dotsInterval);
+                clearInterval(progressInterval);
                 console.error('Error generating study guide:', error);
                 showPage('inputPage');
                 showError(`🚨 ERROR: ${error.message}`);
