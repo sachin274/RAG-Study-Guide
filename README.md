@@ -6,7 +6,8 @@ Retrieval-Augmented Generation (RAG) pipeline plus Google Gemini to produce a
 well-structured, styled PDF study guide covering only the material relevant to your
 topics.
 
-**Project Demo Video Link** : https://drive.google.com/file/d/1xSLmSSPKotZMGVddONu43vSbryvNQrwm/view?usp=drive_link
+## Project Demo Video Link
+**https://drive.google.com/file/d/1xSLmSSPKotZMGVddONu43vSbryvNQrwm/view?usp=drive_link**
 
 ## How It Works
 
