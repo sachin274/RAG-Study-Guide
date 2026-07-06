@@ -7,7 +7,7 @@ well-structured, styled PDF study guide covering only the material relevant to y
 topics.
 
 ## Project Demo Video Link
-**https://drive.google.com/file/d/1xSLmSSPKotZMGVddONu43vSbryvNQrwm/view?usp=drive_link**
+**https://drive.google.com/file/d/1O1X4xdlabNXv1qfdSxpfm-e__n9sCLIz/view?usp=drive_link**
 
 ## How It Works
 
